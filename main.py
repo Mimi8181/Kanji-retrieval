@@ -15,7 +15,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 @st.cache_resource
 def load_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    ckpt_path = "triplet_epoch10.pth"
+    ckpt_path = "triplet_epoch15.pth"
 
     # Definisikan arsitektur sama persis seperti di notebook
     backbone = models.efficientnet_b0(pretrained=True)
