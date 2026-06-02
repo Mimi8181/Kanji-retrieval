@@ -7,11 +7,11 @@ from PIL import Image
 import numpy as np
 import os
 from sklearn.metrics.pairwise import cosine_similarity
+import xml.etree.ElementTree as ET
 
 # =========================================================
 # Setup model dan fungsi pembantu
 # =========================================================
-
 
 @st.cache_resource
 def load_model():
@@ -28,10 +28,6 @@ def load_model():
     embedding_net.load_state_dict(checkpoint["model_state"])
     embedding_net.eval()
     return embedding_net, device
-
-
-import xml.etree.ElementTree as ET
-
 
 @st.cache_resource
 def load_kanjidic():
@@ -63,17 +59,13 @@ def load_kanjidic():
             "onyomi": onyomi,
             "kunyomi": kunyomi,
         }
-
     return kanji_dict
-
 
 def get_kanji_from_path(path):
     return os.path.basename(os.path.dirname(path))
 
-
 def l2_norm(x):
     return x / x.norm(p=2, dim=1, keepdim=True)
-
 
 @st.cache_resource
 def load_gallery(_embedding_net, device):
@@ -101,7 +93,6 @@ def load_gallery(_embedding_net, device):
         gallery_emb = l2_norm(_embedding_net(gallery_tensor)).cpu().numpy()
 
     return gallery_emb, gallery_paths
-
 
 # =========================================================
 # Streamlit UI
@@ -170,7 +161,6 @@ div.stButton > button:hover {
     unsafe_allow_html=True,
 )
 
-
 st.title("Image Retrieval - Siamese Neural Network (Triplet Loss)")
 st.write(
     "Unggah satu gambar, dan sistem akan menampilkan gambar paling mirip dari galeri."
@@ -219,11 +209,6 @@ if uploaded_file is not None:
 
     st.subheader("Gambar Paling Mirip:")
     cols = st.columns(top_k)
-    # for i, idx in enumerate(top_indices):
-    #     with cols[i]:
-    #         st.image(gallery_paths[idx],
-    #                  caption=f"Skor: {sims[idx]:.4f}",
-    #                  use_container_width=True)
 
     for i, idx in enumerate(top_indices):
         with cols[i]:
@@ -242,3 +227,23 @@ if uploaded_file is not None:
                 st.write("**Kunyomi:**", ", ".join(info["kunyomi"]))
             else:
                 st.write("Data tidak ditemukan")
+
+
+    best_idx = top_indices[0]
+    best_path = gallery_paths[best_idx]
+    best_kanji = get_kanji_from_path(best_path)
+    best_score = sims[best_idx]
+
+    info = kanjidic.get(best_kanji, {})
+    meaning = ", ".join(info.get("meanings", [])[:3])
+
+    st.markdown("---")
+    st.subheader("Kesimpulan")
+
+    st.write(
+        f"Hasil retrieval menunjukkan bahwa kanji **{best_kanji}** "
+        f"({meaning}) memiliki skor cosine similarity tertinggi sebesar "
+        f"**{best_score:.4f}**. Nilai ini menunjukkan bahwa karakter tersebut "
+        f"merupakan kanji yang paling mirip dengan gambar query dibandingkan "
+        f"seluruh gambar yang terdapat dalam galeri."
+    )
